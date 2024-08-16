@@ -1,8 +1,8 @@
-use std::io::{self, stdout, Stdout, Write};
+use std::{io::{self, stdout, Stdout, Write}, time::Duration};
 
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
-    event::{read, Event, KeyCode, KeyEventKind, KeyModifiers},
+    event::{poll, read, Event, KeyCode, KeyEventKind, KeyModifiers},
     style::{Color, Print, SetForegroundColor},
     terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
     QueueableCommand
@@ -40,17 +40,47 @@ fn create_menu_box(stdout: &mut Stdout, screen_width: u16, screen_height: u16) -
 
     stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2, pos_y + 3))?;
     stdout.queue(Print("Play"))?;
-    stdout.queue(SetForegroundColor(Color::Cyan))?;
-    stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2 + 7, pos_y + 3))?;
-    stdout.queue(Print("p"))?;
-    stdout.queue(SetForegroundColor(Color::Reset))?;
     stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2, pos_y + 4))?;
     stdout.queue(Print("Quit"))?;
     stdout.queue(SetForegroundColor(Color::Cyan))?;
+    stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2 + 7, pos_y + 3))?;
+    stdout.queue(Print("p"))?;
     stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2 + 7, pos_y + 4))?;
     stdout.queue(Print("q"))?;
     stdout.queue(SetForegroundColor(Color::Reset))?;
 
+    Ok(())
+}
+
+fn game_loop(stdout: &mut Stdout, screen_width: u16, screen_height: u16) -> io::Result<()> {
+    stdout.queue(Clear(ClearType::Purge))?;
+    stdout.queue(Clear(ClearType::All))?;
+    for i in 0..screen_height {
+        stdout.queue(MoveTo(screen_width / 3, i))?;
+        stdout.queue(Print(format!("{}", VERTICAL_LINE)))?;
+    }
+    stdout.flush()?;
+    let mut nr: usize = 0;
+    loop {
+        if poll(Duration::from_millis(500))? {
+            match read()? {
+                Event::Key(event) => {
+                    if event.code == KeyCode::Char('q') {
+                        break;
+                    }
+                },
+                _ => {},
+            }
+        }
+        nr += 1;
+        stdout.queue(MoveTo((screen_width / 3) * 2, screen_height / 2))?;
+        stdout.queue(Print(format!("frame no: {}", nr)))?;
+        stdout.flush()?;
+    }
+    stdout.queue(Clear(ClearType::Purge))?;
+    stdout.queue(Clear(ClearType::All))?;
+    create_menu_box(stdout, screen_width, screen_height)?;
+    stdout.flush()?;
     Ok(())
 }
 
@@ -75,6 +105,7 @@ fn main() -> io::Result<()> {
                 if event.kind == KeyEventKind::Press {
                     match event.code {
                         KeyCode::Char('q') => break,
+                        KeyCode::Char('p') => game_loop(&mut stdout, screen_width, screen_height)?,
                         KeyCode::Char(x) => {
                             if event.modifiers.contains(KeyModifiers::CONTROL) {
                                 match x {
