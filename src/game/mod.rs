@@ -89,11 +89,28 @@ impl Game {
     pub fn start_game_loop(&mut self) -> io::Result<()> {
         self.stdout.queue(Clear(ClearType::Purge))?;
         self.stdout.queue(Clear(ClearType::All))?;
-        for i in 0..self.screen_height {
+        for i in 1..self.screen_height - 1 {
             self.stdout.queue(MoveTo(self.screen_width / 3, i))?;
             self.stdout.queue(Print(format!("{}", VERTICAL_LINE)))?;
+            self.stdout.queue(MoveTo(0, i))?;
+            self.stdout.queue(Print(format!("{}", VERTICAL_LINE)))?;
         }
+        for i in 1..self.screen_width / 3 {
+            self.stdout.queue(MoveTo(i, 0))?;
+            self.stdout.queue(Print(format!("{}", HORIZONTAL_LINE)))?;
+            self.stdout.queue(MoveTo(i, self.screen_height))?;
+            self.stdout.queue(Print(format!("{}", HORIZONTAL_LINE)))?;
+        }
+        self.stdout.queue(MoveTo(0, 0))?;
+        self.stdout.queue(Print(UL_CORNER))?;
+        self.stdout.queue(MoveTo(self.screen_width / 3, 0))?;
+        self.stdout.queue(Print(UR_CORNER))?;
+        self.stdout.queue(MoveTo(self.screen_width / 3, self.screen_height))?;
+        self.stdout.queue(Print(DR_CORNER))?;
+        self.stdout.queue(MoveTo(0, self.screen_height))?;
+        self.stdout.queue(Print(DL_CORNER))?;
         self.stdout.flush()?;
+
         let mut nr: usize = 0;
         loop {
             if poll(Duration::from_millis(500))? {
