@@ -1,15 +1,15 @@
-use std::{io::{self, Stdout, Write}, time::Duration};
+use std::{io::{self, Stdout, Write}, thread, time::{Duration, Instant}};
 
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     event::{poll, read, Event, KeyCode, KeyEventKind, KeyModifiers},
-    style::{Color, Print, SetForegroundColor},
+    style::Print,
     terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
     QueueableCommand
 };
-use utils::{DL_CORNER, DR_CORNER, HORIZONTAL_LINE, UL_CORNER, UR_CORNER, VERTICAL_LINE};
 
 mod utils;
+mod ui;
 
 pub struct Game {
   pub screen_width: u16,
@@ -47,68 +47,17 @@ impl Game {
     }
 
     pub fn show_main_menu(&mut self) -> io::Result<()> {
-        let box_width = 24;
-        let box_height = 6;
-        let pos_x = self.screen_width / 2 - (box_width / 2);
-        let pos_y = self.screen_height / 2 - (box_height / 2);
-        
-        self.stdout.queue(Clear(ClearType::Purge))?;
         self.stdout.queue(Clear(ClearType::All))?;
-        self.stdout.queue(MoveTo(pos_x, pos_y))?;
-        self.stdout.queue(Print(format!("{}{}{}", UL_CORNER, HORIZONTAL_LINE.repeat(box_width as usize - 2), UR_CORNER)))?;
-        for i in 1..(box_height - 1) {
-            self.stdout.queue(MoveTo(pos_x, pos_y + i))?;
-            self.stdout.queue(Print(format!("{}{}{}", VERTICAL_LINE, " ".repeat(box_width as usize - 2), VERTICAL_LINE)))?;
-        }
-        self.stdout.queue(MoveTo(pos_x, pos_y + (box_height - 1)))?;
-        self.stdout.queue(Print(format!("{}{}{}", DL_CORNER, HORIZONTAL_LINE.repeat(box_width as usize - 2), DR_CORNER)))?;
-
-        let title = "Unnamed Cli Game";
-        self.stdout.queue(SetForegroundColor(Color::DarkYellow))?;
-        self.stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - title.len() as u16) / 2, pos_y + 1))?;
-        self.stdout.queue(Print(title))?;
-        self.stdout.queue(SetForegroundColor(Color::Reset))?;
-        self.stdout.queue(MoveTo(pos_x + 1, pos_y + 2))?;
-        self.stdout.queue(Print(format!("{}", "-".repeat(box_width as usize - 2))))?;
-
-        self.stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2, pos_y + 3))?;
-        self.stdout.queue(Print("Play"))?;
-        self.stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2, pos_y + 4))?;
-        self.stdout.queue(Print("Quit"))?;
-        self.stdout.queue(SetForegroundColor(Color::Cyan))?;
-        self.stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2 + 7, pos_y + 3))?;
-        self.stdout.queue(Print("p"))?;
-        self.stdout.queue(MoveTo(pos_x + 1 + ((box_width - 2) - 8) / 2 + 7, pos_y + 4))?;
-        self.stdout.queue(Print("q"))?;
-        self.stdout.queue(SetForegroundColor(Color::Reset))?;
+        self.stdout.queue(Clear(ClearType::Purge))?;
+        self.draw_main_menu()?;
         self.stdout.flush()?;
-
         Ok(())
     }
 
     pub fn start_game_loop(&mut self) -> io::Result<()> {
-        self.stdout.queue(Clear(ClearType::Purge))?;
         self.stdout.queue(Clear(ClearType::All))?;
-        for i in 1..self.screen_height - 1 {
-            self.stdout.queue(MoveTo(self.screen_width / 3, i))?;
-            self.stdout.queue(Print(format!("{}", VERTICAL_LINE)))?;
-            self.stdout.queue(MoveTo(0, i))?;
-            self.stdout.queue(Print(format!("{}", VERTICAL_LINE)))?;
-        }
-        for i in 1..self.screen_width / 3 {
-            self.stdout.queue(MoveTo(i, 0))?;
-            self.stdout.queue(Print(format!("{}", HORIZONTAL_LINE)))?;
-            self.stdout.queue(MoveTo(i, self.screen_height))?;
-            self.stdout.queue(Print(format!("{}", HORIZONTAL_LINE)))?;
-        }
-        self.stdout.queue(MoveTo(0, 0))?;
-        self.stdout.queue(Print(UL_CORNER))?;
-        self.stdout.queue(MoveTo(self.screen_width / 3, 0))?;
-        self.stdout.queue(Print(UR_CORNER))?;
-        self.stdout.queue(MoveTo(self.screen_width / 3, self.screen_height))?;
-        self.stdout.queue(Print(DR_CORNER))?;
-        self.stdout.queue(MoveTo(0, self.screen_height))?;
-        self.stdout.queue(Print(DL_CORNER))?;
+        self.stdout.queue(Clear(ClearType::Purge))?;
+        self.draw_game_controls()?;
         self.stdout.flush()?;
 
         let mut nr: usize = 0;
@@ -146,6 +95,27 @@ impl Game {
             self.stdout.flush()?;
         }
         self.show_main_menu()?;
+
+        Ok(())
+    }
+
+    pub fn run_benchmark(&mut self) -> io::Result<()> {
+        let start = Instant::now();
+        let duration = Duration::from_secs(3);
+        let mut n_of_frames: usize = 1;
+        self.stdout.queue(Clear(ClearType::All))?;
+        self.stdout.queue(Clear(ClearType::Purge))?;
+        while Instant::now() - start < duration {
+            self.stdout.queue(Clear(ClearType::All))?;
+            self.stdout.queue(Clear(ClearType::Purge))?;
+            self.draw_game_controls()?;
+            self.stdout.flush()?;
+            n_of_frames += 1;
+            thread::sleep(Duration::from_millis(32));
+        }
+        self.stdout.queue(MoveTo(self.screen_width / 3, self.screen_height / 2))?;
+        self.stdout.queue(Print(format!("Benchmark done: {} frames per second", n_of_frames / 3)))?;
+        self.stdout.flush()?;
 
         Ok(())
     }

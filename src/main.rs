@@ -20,6 +20,7 @@ fn main() -> io::Result<()> {
                     match event.code {
                         KeyCode::Char('q') => game.should_quit = true,
                         KeyCode::Char('p') => game.start_game_loop()?,
+                        KeyCode::Char('b') => game.run_benchmark()?,
                         KeyCode::Char(x) => {
                             if event.modifiers.contains(KeyModifiers::CONTROL) {
                                 match x {
