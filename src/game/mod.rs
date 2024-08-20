@@ -16,6 +16,8 @@ pub struct Game {
   pub screen_height: u16,
   pub stdout: Stdout,
   pub should_quit: bool,
+  pub playfield_start: (u16, u16),
+  pub playfield_end: (u16, u16),
 }
 
 impl Game {
@@ -26,6 +28,8 @@ impl Game {
             screen_height,
             stdout,
             should_quit: false,
+            playfield_start: (screen_width / 3 + 1, 0),
+            playfield_end: (screen_width - 1, screen_height - 1),
         })
     }
 
@@ -58,6 +62,9 @@ impl Game {
         self.stdout.queue(Clear(ClearType::All))?;
         self.stdout.queue(Clear(ClearType::Purge))?;
         self.draw_game_controls()?;
+        let level = self.generate_level()?;
+        self.stdout.queue(MoveTo(self.screen_width / 3 + 10, 10))?;
+        self.draw_level(level)?;
         self.stdout.flush()?;
 
         let mut nr: usize = 0;

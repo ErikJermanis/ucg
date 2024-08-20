@@ -77,4 +77,16 @@ impl Game {
 
         Ok(())
     }
+
+    pub fn draw_level(&mut self, level: Vec<Vec<char>>) -> io::Result<()> {
+        let mut buffer = String::new();
+        for (y, row) in level.iter().enumerate() {
+            buffer.clear();
+            buffer = row.iter().collect();
+            self.stdout.queue(MoveTo(self.screen_width / 3 + 10, 10 + y as u16))?;
+            self.stdout.queue(Print(&buffer))?;
+        }
+
+        Ok(())
+    }
 }
