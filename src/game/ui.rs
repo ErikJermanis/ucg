@@ -78,14 +78,23 @@ impl Game {
         Ok(())
     }
 
-    pub fn draw_level(&mut self, level: Vec<Vec<char>>) -> io::Result<()> {
+    pub fn draw_level(&mut self) -> io::Result<()> {
         let mut buffer = String::new();
-        for (y, row) in level.iter().enumerate() {
+        for (y, row) in self.level.iter().enumerate() {
             buffer.clear();
             buffer = row.iter().collect();
-            self.stdout.queue(MoveTo(self.screen_width / 3 + 10, 10 + y as u16))?;
+            self.stdout.queue(MoveTo(self.playfield_origin.0, self.playfield_origin.1 + y as u16))?;
             self.stdout.queue(Print(&buffer))?;
         }
+
+        Ok(())
+    }
+
+    pub fn draw_player(&mut self) -> io::Result<()> {
+        self.stdout.queue(MoveTo(self.player.position.0, self.player.position.1))?;
+        self.stdout.queue(Print("P"))?;
+        self.stdout.queue(MoveTo(self.player.old_position.0, self.player.old_position.1))?;
+        self.stdout.queue(Print(format!("{}", self.level[self.player.old_position.0 as usize][self.player.old_position.1 as usize])))?;
 
         Ok(())
     }

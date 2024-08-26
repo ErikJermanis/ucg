@@ -3,12 +3,17 @@ use std::io::{self, stdout};
 use crossterm::event::{read, Event, KeyCode, KeyEventKind, KeyModifiers};
 
 mod game;
+mod player;
 use game::Game;
 
 fn main() -> io::Result<()> {
     let stdout = stdout();
 
     let mut game = Game::new(stdout)?;
+
+    if !game.check_terminal_size()? {
+        return Ok(());
+    }
 
     game.init()?;
     game.show_main_menu()?;

@@ -8,6 +8,8 @@ use crossterm::{
     QueueableCommand
 };
 
+use crate::player;
+
 mod utils;
 mod ui;
 
@@ -16,21 +18,39 @@ pub struct Game {
   pub screen_height: u16,
   pub stdout: Stdout,
   pub should_quit: bool,
-  pub playfield_start: (u16, u16),
-  pub playfield_end: (u16, u16),
+  pub playfield_origin: (u16, u16),
+  pub playfield_size: (u16, u16),
+  pub player: player::Player,
+  pub level: Vec<Vec<char>>,
 }
 
 impl Game {
     pub fn new(stdout: Stdout) -> io::Result<Self> {
         let (screen_width, screen_height) = size()?;
+        let playfield_size: (u16, u16) = (60, 25);
+        let playfield_origin_x: u16 = (screen_width - screen_width / 3 - playfield_size.0) / 2 + screen_width / 3;
+        let playfield_origin_y: u16 = screen_height / 2 - playfield_size.1 / 2;
+        let player = player::Player::new((playfield_origin_x, playfield_origin_y));
         Ok(Game {
             screen_width,
             screen_height,
             stdout,
             should_quit: false,
-            playfield_start: (screen_width / 3 + 1, 0),
-            playfield_end: (screen_width - 1, screen_height - 1),
+            playfield_origin: (playfield_origin_x, playfield_origin_y),
+            playfield_size,
+            player,
+            level: Vec::new(),
         })
+    }
+
+    pub fn check_terminal_size(&mut self) -> io::Result<bool> {
+        if self.screen_width < utils::MIN_TERMINAL_WIDTH || self.screen_height < utils::MIN_TERMINAL_HEIGHT {
+            self.stdout.queue(Print(format!("Please resize terminal window to at least 138x32. Current size: {}x{}\n", self.screen_width, self.screen_height)))?;
+            self.stdout.flush()?;
+            return Ok(false);
+        }
+        
+        Ok(true)
     }
 
     pub fn init(&mut self) -> io::Result<()> {
@@ -62,19 +82,24 @@ impl Game {
         self.stdout.queue(Clear(ClearType::All))?;
         self.stdout.queue(Clear(ClearType::Purge))?;
         self.draw_game_controls()?;
-        let level = self.generate_level()?;
+        self.level = self.generate_emtpy_level()?;
         self.stdout.queue(MoveTo(self.screen_width / 3 + 10, 10))?;
-        self.draw_level(level)?;
+        self.draw_level()?;
         self.stdout.flush()?;
 
-        let mut nr: usize = 0;
         loop {
+            self.draw_player()?;
+            self.stdout.flush()?;
             if poll(Duration::from_millis(500))? {
                 match read()? {
                     Event::Key(event) => {
                         if event.kind == KeyEventKind::Press {
                             match event.code {
                                 KeyCode::Char('q') => break,
+                                KeyCode::Char('j') => self.player.move_player(player::Direction::Down),
+                                KeyCode::Char('k') => self.player.move_player(player::Direction::Up),
+                                KeyCode::Char('h') => self.player.move_player(player::Direction::Left),
+                                KeyCode::Char('l') => self.player.move_player(player::Direction::Right),
                                 KeyCode::Char(x) => {
                                     if event.modifiers.contains(KeyModifiers::CONTROL) {
                                         match x {
@@ -96,10 +121,6 @@ impl Game {
                     _ => {},
                 }
             }
-            nr += 1;
-            self.stdout.queue(MoveTo((self.screen_width / 3) * 2, self.screen_height / 2))?;
-            self.stdout.queue(Print(format!("frame no: {}", nr)))?;
-            self.stdout.flush()?;
         }
         self.show_main_menu()?;
 
