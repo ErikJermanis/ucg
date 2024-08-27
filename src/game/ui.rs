@@ -2,7 +2,7 @@ use std::io;
 
 use crossterm::{cursor::MoveTo, style::{Color, Print, SetForegroundColor}, QueueableCommand};
 
-use super::{utils::{DL_CORNER, DR_CORNER, GAME_TITLE, HORIZONTAL_LINE, L_T, R_T, UL_CORNER, UR_CORNER, VERTICAL_LINE}, Game};
+use super::{utils::{DL_CORNER, DR_CORNER, GAME_TITLE, HORIZONTAL_LINE, L_T, PLAYER_TEXTURE, R_T, UL_CORNER, UR_CORNER, VERTICAL_LINE}, Game};
 
 impl Game {
     pub fn draw_main_menu(&mut self) -> io::Result<()> {
@@ -82,7 +82,9 @@ impl Game {
         let mut buffer = String::new();
         for (y, row) in self.level.iter().enumerate() {
             buffer.clear();
-            buffer = row.iter().collect();
+            for cell in row {
+                buffer.push_str(cell.to_char().to_string().as_str());
+            }
             self.stdout.queue(MoveTo(self.playfield_origin.0, self.playfield_origin.1 + y as u16))?;
             self.stdout.queue(Print(&buffer))?;
         }
@@ -91,10 +93,14 @@ impl Game {
     }
 
     pub fn draw_player(&mut self) -> io::Result<()> {
-        self.stdout.queue(MoveTo(self.player.position.0, self.player.position.1))?;
-        self.stdout.queue(Print("P"))?;
-        self.stdout.queue(MoveTo(self.player.old_position.0, self.player.old_position.1))?;
-        self.stdout.queue(Print(format!("{}", self.level[self.player.old_position.0 as usize][self.player.old_position.1 as usize])))?;
+        self.stdout.queue(MoveTo(self.playfield_origin.0 + self.player.position.0, self.playfield_origin.1 + self.player.position.1))?;
+        self.stdout.queue(Print(PLAYER_TEXTURE))?;
+        if let Some(row) = self.level.get(self.player.old_position.1 as usize) {
+            if let Some(cell) = row.get(self.player.old_position.0 as usize) {
+                self.stdout.queue(MoveTo(self.playfield_origin.0 + self.player.old_position.0, self.playfield_origin.1 + self.player.old_position.1))?;
+                self.stdout.queue(Print(cell.to_char()))?;
+            }
+        }
 
         Ok(())
     }

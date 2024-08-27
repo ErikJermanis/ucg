@@ -7,6 +7,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
     QueueableCommand
 };
+use utils::Tile;
 
 use crate::player;
 
@@ -21,7 +22,7 @@ pub struct Game {
   pub playfield_origin: (u16, u16),
   pub playfield_size: (u16, u16),
   pub player: player::Player,
-  pub level: Vec<Vec<char>>,
+  pub level: Vec<Vec<Tile>>,
 }
 
 impl Game {
@@ -30,7 +31,7 @@ impl Game {
         let playfield_size: (u16, u16) = (60, 25);
         let playfield_origin_x: u16 = (screen_width - screen_width / 3 - playfield_size.0) / 2 + screen_width / 3;
         let playfield_origin_y: u16 = screen_height / 2 - playfield_size.1 / 2;
-        let player = player::Player::new((playfield_origin_x, playfield_origin_y));
+        let player = player::Player::new();
         Ok(Game {
             screen_width,
             screen_height,
@@ -83,7 +84,6 @@ impl Game {
         self.stdout.queue(Clear(ClearType::Purge))?;
         self.draw_game_controls()?;
         self.level = self.generate_emtpy_level()?;
-        self.stdout.queue(MoveTo(self.screen_width / 3 + 10, 10))?;
         self.draw_level()?;
         self.stdout.flush()?;
 
@@ -96,10 +96,46 @@ impl Game {
                         if event.kind == KeyEventKind::Press {
                             match event.code {
                                 KeyCode::Char('q') => break,
-                                KeyCode::Char('j') => self.player.move_player(player::Direction::Down),
-                                KeyCode::Char('k') => self.player.move_player(player::Direction::Up),
-                                KeyCode::Char('h') => self.player.move_player(player::Direction::Left),
-                                KeyCode::Char('l') => self.player.move_player(player::Direction::Right),
+                                KeyCode::Down => {
+                                    if !self.check_collision(self.player.position.0, self.player.position.1 + 1) {
+                                        self.player.move_player(player::Direction::Down);
+                                    }
+                                },
+                                KeyCode::Up => {
+                                    if !self.check_collision(self.player.position.0, self.player.position.1 - 1) {
+                                        self.player.move_player(player::Direction::Up);
+                                    }
+                                },
+                                KeyCode::Left => {
+                                    if !self.check_collision(self.player.position.0 - 1, self.player.position.1) {
+                                        self.player.move_player(player::Direction::Left);
+                                    }
+                                },
+                                KeyCode::Right => {
+                                    if !self.check_collision(self.player.position.0 + 1, self.player.position.1) {
+                                        self.player.move_player(player::Direction::Right);
+                                    }
+                                },
+                                KeyCode::Char('j') => {
+                                    if !self.check_collision(self.player.position.0, self.player.position.1 + 1) {
+                                        self.player.move_player(player::Direction::Down);
+                                    }
+                                },
+                                KeyCode::Char('k') => {
+                                    if !self.check_collision(self.player.position.0, self.player.position.1 - 1) {
+                                        self.player.move_player(player::Direction::Up);
+                                    }
+                                },
+                                KeyCode::Char('h') => {
+                                    if !self.check_collision(self.player.position.0 - 1, self.player.position.1) {
+                                        self.player.move_player(player::Direction::Left);
+                                    }
+                                },
+                                KeyCode::Char('l') => {
+                                    if !self.check_collision(self.player.position.0 + 1, self.player.position.1) {
+                                        self.player.move_player(player::Direction::Right);
+                                    }
+                                },
                                 KeyCode::Char(x) => {
                                     if event.modifiers.contains(KeyModifiers::CONTROL) {
                                         match x {

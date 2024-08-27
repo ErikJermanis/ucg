@@ -11,10 +11,10 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(playfield_origin: (u16, u16)) -> Self {
+    pub fn new() -> Self {
         Player {
-            old_position: (playfield_origin.0 + 1, playfield_origin.1 + 1),
-            position: (playfield_origin.0 + 1, playfield_origin.1 + 1),
+            old_position: (0, 0),
+            position: (1, 1),
         }
     }
 
