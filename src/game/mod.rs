@@ -83,7 +83,8 @@ impl Game {
         self.stdout.queue(Clear(ClearType::All))?;
         self.stdout.queue(Clear(ClearType::Purge))?;
         self.draw_game_controls()?;
-        self.level = self.generate_emtpy_level()?;
+        // self.level = self.load_emtpy_level()?;
+        self.level = self.load_level_1()?;
         self.draw_level()?;
         self.stdout.flush()?;
 

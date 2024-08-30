@@ -15,6 +15,7 @@ pub const MIN_TERMINAL_HEIGHT: u16 = 32;
 pub const WALL_TEXTURE: char = '█';
 pub const FLOOR_TEXTURE: char = ' ';
 pub const PLAYER_TEXTURE: char = 'O';
+pub const LEVEL_1: &str = include_str!("../../levels/level1.txt");
 
 pub const GAME_TITLE: &str = "Unnamed Cli Game";
 
@@ -31,10 +32,18 @@ impl Tile {
             Tile::Floor => FLOOR_TEXTURE,
         }
     }
+
+    pub fn from_char(c: char) -> Self {
+        match c {
+            WALL_TEXTURE => Tile::Wall,
+            FLOOR_TEXTURE => Tile::Floor,
+            _ => Tile::Floor,
+        }
+    }
 }
 
 impl Game {
-    pub fn generate_emtpy_level(&mut self) -> io::Result<Vec<Vec<Tile>>> {
+    pub fn load_emtpy_level(&mut self) -> io::Result<Vec<Vec<Tile>>> {
         let mut level: Vec<Vec<Tile>> = Vec::new();
         let mut row: Vec<Tile> = Vec::new();
         for _ in 0..self.playfield_size.0 {
@@ -55,6 +64,19 @@ impl Game {
             row.push(Tile::Wall);
         }
         level.push(row.clone());
+
+        Ok(level)
+    }
+
+    pub fn load_level_1(&mut self) -> io::Result<Vec<Vec<Tile>>> {
+        let level = LEVEL_1
+            .lines()
+            .map(|line| {
+                line.chars()
+                    .map(|c| Tile::from_char(c))
+                    .collect::<Vec<Tile>>()
+            })
+            .collect::<Vec<Vec<Tile>>>();
 
         Ok(level)
     }
